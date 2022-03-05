@@ -8,10 +8,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:path_provider/path_provider.dart' as pathProvider;
 import 'package:location/location.dart';
 import 'package:intl/intl.dart';
+
+import 'hivedb.dart';
 
 String androidId = '';
 double? lat = 0.0;
@@ -33,7 +37,7 @@ void main() async {
   // _batteryStateSubscription =
   //     _battery.onBatteryStateChanged.listen(_updateBatteryState);
 
-//----------- Location------------
+//----------- Location Permission------------
   Location location = new Location();
   location.enableBackgroundMode();
   late bool _serviceEnabled;
@@ -56,7 +60,7 @@ void main() async {
   }
 
 //------------------------------------------------------
-  //await initializeService();
+
   print('THIS IS MAIN FUNCTION');
   runApp(MyApp());
 }
@@ -114,24 +118,23 @@ void onStart() {
     }
   });
   final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-  Location;
   // bring to foreground
   service.setForegroundMode(true);
+
+  //------------------Loop start----------------
   Timer.periodic(const Duration(seconds: 5), (timer) async {
     //if (!(await service.isServiceRunning())) timer.cancel();
+
+    //----------------Set Notification------------------
     service.setNotificationInfo(
       title: "Background Service testing",
       content: "Updated at ${DateTime.now()}",
     );
-//----------------------------------
+    //----------------------------------------------------
 
     final info = await deviceInfoPlugin.androidInfo;
     androidId = info.androidId.toString();
-    //print('android Id :' + androidId);
-
-    // var battery = Battery();
-    // batteryStatus = await battery.batteryLevel.toString();
-    //print('Battery: $batteryStatus');
+    //------------------------Geo Location-----------------
 
     Position? position = await Geolocator.getCurrentPosition();
     if (position != null) {
@@ -140,23 +143,34 @@ void onStart() {
     }
     print('latlong: $lat, $long');
 
+    //------------------Time Date----------------------------------
     var now = DateTime.now();
     var formatter = DateFormat('dd-MM-yyyy');
     formattedDate = formatter.format(now);
-    //print('date: $formattedDate');
-//----------------------------------
+    //-------------------------------------------------
 
+    //---------------HIVE-------------------
+    // Directory directory = await pathProvider.getApplicationDocumentsDirectory();
+    // Hive.init('/data/user/0/com.example.demoisolate/app_flutter');
+    // var box = await Hive.openBox('myBox');
+
+    // print(box.getAt(0)['naam']);
+    // print(box.getAt(0)['phone']);
+    //----------------------------------
+
+    //--------------------Api Hit Logic-----------------------------
     if (mobileNo == '' && syncCode == '') {
       getMobileAndSync();
     } else {
       sendActivity(timer);
     }
-
+    //--------------------Api Hit Logic-----------------------------
     service.sendData(
       {
         //"current_date": DateTime.now().toIso8601String(),
       },
     );
+    //-------------------------------------------------
   });
 }
 
@@ -232,12 +246,19 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    initHiveDB();
   }
 
   // Future<void> runCompute() async {
   //   count = await compute(computeFunction, 2000);
   //   setState(() {});
   // }
+  Future<void> initHiveDB() async {
+    // await Hive.initFlutter();
+    Directory directory = await pathProvider.getApplicationDocumentsDirectory();
+    print(directory.path);
+    Hive.init(directory.path);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -251,7 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Text(count.toString()),
             ElevatedButton(
-              child: Text("Add"),
+              child: Text("Start"),
               onPressed: () async {
                 count++;
                 await initializeService();
@@ -264,14 +285,39 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               child: Text("Stop"),
               onPressed: () async {
-                count--;
-                final service = FlutterBackgroundService();
-                var isRunning = await service.isServiceRunning();
-                if (isRunning) {
-                  service.sendData(
-                    {"action": "stopService"},
-                  );
-                }
+                // count--;
+                // final service = FlutterBackgroundService();
+                // var isRunning = await service.isServiceRunning();
+                // if (isRunning) {
+                //   service.sendData(
+                //     {"action": "stopService"},
+                //   );
+                // }
+
+                setState(() {});
+              },
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton(
+              child: Text("put data"),
+              onPressed: () async {
+                HiveDB.put();
+                setState(() {});
+              },
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton(
+              child: Text("get data"),
+              onPressed: () async {
+                var box = await Hive.openBox('myBox');
+
+                print(box.getAt(0)['naam']);
+                print(box.getAt(0)['phone']);
+                //count = box.get('name');
                 setState(() {});
               },
             ),
