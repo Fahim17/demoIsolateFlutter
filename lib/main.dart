@@ -35,6 +35,7 @@ void main() async {
 
 //----------- Location------------
   Location location = new Location();
+  location.enableBackgroundMode();
   late bool _serviceEnabled;
   late PermissionStatus _permissionGranted;
 
@@ -74,7 +75,7 @@ Future<void> initializeService() async {
 
       // auto start service
       autoStart: true,
-      isForegroundMode: false,
+      isForegroundMode: true,
     ),
     iosConfiguration: IosConfiguration(
       // auto start service
@@ -139,8 +140,8 @@ void onStart() {
     }
     print('latlong: $lat, $long');
 
-    var now = new DateTime.now();
-    var formatter = new DateFormat('dd-MM-yyyy');
+    var now = DateTime.now();
+    var formatter = DateFormat('dd-MM-yyyy');
     formattedDate = formatter.format(now);
     //print('date: $formattedDate');
 //----------------------------------
@@ -257,10 +258,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState(() {});
               },
             ),
-            // ElevatedButton(
-            //   child: Text("Add in Isolate"),
-            //   onPressed: runCompute,
-            // ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton(
+              child: Text("Stop"),
+              onPressed: () async {
+                count--;
+                final service = FlutterBackgroundService();
+                var isRunning = await service.isServiceRunning();
+                if (isRunning) {
+                  service.sendData(
+                    {"action": "stopService"},
+                  );
+                }
+                setState(() {});
+              },
+            ),
           ],
         ),
       ),
